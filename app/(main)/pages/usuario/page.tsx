@@ -29,7 +29,7 @@ const Crud = () => {
         email: ''
     };
 
-    const [usuarios, setUsuarios] = useState(null);
+    const [usuarios, setUsuarios] = useState<Galeria.Usuario[]>([]);
     const [usuarioDialog, setUsuarioDialog] = useState(false);
     const [deleteUsuarioDialog, setDeleteUsuarioDialog] = useState(false);
     const [deleteUsuariosDialog, setDeleteUsuariosDialog] = useState(false);
@@ -42,13 +42,16 @@ const Crud = () => {
     const usuarioService = new UsuarioService();
 
     useEffect(() => {
-       usuarioService.listarTodos().then((response)=> {
+        if(usuarios.length == 0){
+        usuarioService.listarTodos().then((response)=> {
         console.log(response.data);
         setUsuarios(response.data);
        }).catch((error) => {
         console.log(error)
-       })
-    }, []);
+       }) 
+        }
+     
+    }, [usuarios]);
 
 
 
@@ -74,35 +77,49 @@ const Crud = () => {
     const saveUsuario = () => {
         setSubmitted(true);
 
-        // if (usuario.nome.trim()) {
-        //     let _usuarios = [...(usuarios as any)];
-        //     let _Usuario = { ...usuario };
-        //     if (usuario.id) {
-        //         const index = findIndexById(usuario.id);
-
-        //         _usuarios[index] = _usuario;
-        //         toast.current?.show({
-        //             severity: 'success',
-        //             summary: 'Successful',
-        //             detail: 'Product Updated',
-        //             life: 3000
-        //         });
-        //     } else {
-        //         _product.id = createId();
-        //         _product.image = 'product-placeholder.svg';
-        //         _products.push(_product);
-        //         toast.current?.show({
-        //             severity: 'success',
-        //             summary: 'Successful',
-        //             detail: 'Product Created',
-        //             life: 3000
-        //         });
-        //     }
-
-        //     setProducts(_products as any);
-        //     setProductDialog(false);
-        //     setProduct(emptyProduct);
-        // }
+        if(!usuario.id){
+            usuarioService.inserir(usuario)
+            .then((response) => {
+                console.log(response.data);
+                setUsuarioDialog(false);
+                setUsuario(usuarioVazio);
+                setUsuarios([]);
+                setUsuarios(response.data);
+                toast.current?.show({
+                    severity: 'info',
+                    summary: 'Sucesso!',
+                    detail: 'Usuário cadastrado com sucesso!'
+                })
+            }).catch((error) =>{
+                const errorMessage = error?.response?.data?.message || 'Erro ao salvar, tente novamente.';
+                console.log(error);
+                toast.current?.show({
+                    severity: 'error',
+                    summary: 'Erro!',
+                    detail: errorMessage
+                })
+            })
+        }else{
+            usuarioService.alterar(usuario)
+            .then((response) => {
+                setUsuarioDialog(false);
+                setUsuario(usuarioVazio);
+                setUsuarios([]);
+                toast.current?.show({
+                    severity: 'info',
+                    summary: 'Sucesso',
+                    detail: 'Usuário alterado com sucesso.'
+                })
+            }).catch((error) => {
+                const errorMessage = error?.response?.data?.message || 'Erro ao salvar, tente novamente.';
+                console.log(error);
+                toast.current?.show({
+                    severity: 'error',
+                    summary: 'Erro!',
+                    detail: errorMessage
+                }) 
+            })
+        }
     };
 
     const editUsuario = (usuario: Galeria.Usuario) => {
@@ -116,6 +133,23 @@ const Crud = () => {
     };
 
     const deleteUsuario = () => {
+        usuarioService.excluir(usuario.id).then((response) => {
+            setUsuario(usuarioVazio);
+            setDeleteUsuarioDialog(false);
+            setUsuarios([]);
+            toast.current?.show({
+                severity: 'success',
+                summary: 'Sucesso!',
+                detail: 'Usuário deletado',
+                life: 3000 });
+
+        }).catch((error) => {
+            toast.current?.show({
+                severity: 'error',
+                summary: 'Erro!',
+                detail: 'Erro ao deletar',
+                life: 3000 })
+        })
         // let _usuarios = (usuarios as any)?.filter((val: any) => val.id !== usuario.id);
         // setUsuarios(_usuarios);
         // setDeleteUsuarioDialog(false);
@@ -176,18 +210,19 @@ const Crud = () => {
     //     setProduct(_product);
     // };
 
-    const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, name: string) => {
+    const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, nome: string) => {
         const val = (e.target && e.target.value) || '';
         let _usuario = { ...usuario };
-        _usuario[`${name}`] = val;
-
+        _usuario[nome] = val;
+    
         setUsuario(_usuario);
     };
+    
 
-    // const onInputNumberChange = (e: InputNumberValueChangeEvent, name: string) => {
+    // const onInputNumberChange = (e: InputNumberValueChangeEvent, nome: string) => {
     //     const val = e.value || 0;
     //     let _product = { ...product };
-    //     _product[`${name}`] = val;
+    //     _product[`${nome}`] = val;
 
     //     setProduct(_product);
     // };
@@ -363,7 +398,7 @@ const Crud = () => {
                             <InputText
                                 id="nome"
                                 value={usuario.nome}
-                                onChange={(e) => onInputChange(e, 'name')}
+                                onChange={(e) => onInputChange(e, 'nome')}
                                 required
                                 autoFocus
                                 className={classNames({
@@ -397,7 +432,7 @@ const Crud = () => {
                             <InputText
                                 id="senha"
                                 value={usuario.senha}
-                                onChange={(e) => onInputChange(e, 'name')}
+                                onChange={(e) => onInputChange(e, 'senha')}
                                 required
                                 autoFocus
                                 className={classNames({
