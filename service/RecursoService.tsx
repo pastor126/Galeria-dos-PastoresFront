@@ -3,10 +3,10 @@ import { GeralService } from "./GeralService";
 
 
 
-export class UsuarioService extends GeralService{
+export class RecursoService extends GeralService{
 
     constructor(){
-        super("/usuario");
+        super("/recurso");
     }
 
 }
