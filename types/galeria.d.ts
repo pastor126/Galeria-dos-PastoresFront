@@ -13,4 +13,9 @@ declare namespace Galeria {
         nome: string;
         chave: string;
     }
+
+    type Perfil = {
+        id?: number;
+        descricao: string;
+    }
 }
