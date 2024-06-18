@@ -9,79 +9,109 @@ import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
 import { Toolbar } from 'primereact/toolbar';
 import { classNames } from 'primereact/utils';
-import React, { useEffect, useRef, useState } from 'react';
-import { RecursoService } from '@/service/RecursoService';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { PerfilUsuarioService } from '@/service/PerfilUsuarioService';
 import { error } from 'console';
+import { UsuarioService } from '@/service/UsuarioService';
+import { PerfilService } from '@/service/PerfilService';
+import { Dropdown, DropdownChangeEvent } from 'primereact/dropdown';
 
 
-/* @todo Used 'as any' for types here. Will fix in next version due to onSelectionChange event type issue. */
-const Recurso = () => {
-    let recursoVazio: Galeria.Recurso = {
+
+const PerfilUsuario = () => {
+    let perfilUsuarioVazio: Galeria.PerfilUsuario = {
         id: 0,
-        nome: '',
-        chave: ''
+        perfil: {descricao: ''},
+        usuario: {nome: '', login: '', senha: '', email: ''}
     };
 
-    const [recursos, setRecursos] = useState<Galeria.Recurso[] | null>(null);
-    const [recursoDialog, setRecursoDialog] = useState(false);
-    const [deleteRecursoDialog, setDeleteRecursoDialog] = useState(false);
-    const [deleteRecursosDialog, setDeleteRecursosDialog] = useState(false);
-    const [recurso, setRecurso] = useState<Galeria.Recurso>(recursoVazio);
-    const [selectedRecursos, setSelectedRecursos] = useState<Galeria.Recurso[]>([]);
+    const [perfisUsuario, setPerfisUsuario] = useState<Galeria.PerfilUsuario[] | null>(null);
+    const [perfilUsuarioDialog, setPerfilUsuarioDialog] = useState(false);
+    const [deletePerfilUsuarioDialog, setDeletePerfilUsuarioDialog] = useState(false);
+    const [deletePerfilUsuariosDialog, setDeletePerfilUsuariosDialog] = useState(false);
+    const [perfilUsuario, setPerfilUsuario] = useState<Galeria.PerfilUsuario>(perfilUsuarioVazio);
+    const [selectedPerfilUsuarios, setSelectedPerfilUsuarios] = useState<Galeria.PerfilUsuario[]>([]);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState('');
     const toast = useRef<Toast>(null);
     const dt = useRef<DataTable<any>>(null);
-    const recursoService = new RecursoService();
+    const perfilUsuarioService = useMemo(() => new PerfilUsuarioService(), []) ;
+    const usuarioService = useMemo(()=> new UsuarioService(), []);
+    const perfilService = useMemo(()=> new PerfilService(), []);
+    const [usuarios, setUsuarios] = useState<Galeria.Usuario[]>([]);
+    const [perfis, setPerfis] = useState<Galeria.Perfil[]>([]);
 
     useEffect(() => {
-        if(!recursos){
-        recursoService.listarTodos()
+        if(!perfisUsuario){
+        perfilUsuarioService.listarTodos()
         .then((response)=> {
         console.log(response.data);
-        setRecursos(response.data);
+        setPerfisUsuario(response.data);
        }).catch((error) => {
         console.log(error)
        }) 
         } 
-    }, [recursoService, recursos]);
+    }, [perfilUsuarioService, perfisUsuario]);
+
+    useEffect(() => {
+        if(perfilUsuarioDialog){
+            usuarioService.listarTodos()
+            .then((response) => setUsuarios(response.data))
+            .catch(error=> {
+                toast.current?.show({
+                    severity: 'error',
+                    summary: 'Erro!',
+                    detail: 'Erro ao carregar lista de usuarios.'
+                });
+            });
+            perfilService.listarTodos()
+            .then((response) => setPerfis(response.data))
+            .catch(error => {
+                toast.current?.show({
+                    severity: 'error',
+                    summary: 'Erro!',
+                    detail: 'Erro ao carregar lista de perfis.'
+                }); 
+            })
+        }   
+    }, [perfilUsuarioDialog, perfilService, usuarioService]);
 
 
 
     const openNew = () => {
-        setRecurso(recursoVazio);
+        setPerfilUsuario(perfilUsuarioVazio);
         setSubmitted(false);
-        setRecursoDialog(true);
+        setPerfilUsuarioDialog(true);
     };
 
     const hideDialog = () => {
         setSubmitted(false);
-        setRecursoDialog(false);
+        setPerfilUsuarioDialog(false);
     };
 
-    const hideDeleteRecursoDialog = () => {
-        setDeleteRecursoDialog(false);
+    const hideDeletePerfilUsuarioDialog = () => {
+        setDeletePerfilUsuarioDialog(false);
     };
 
-    const hideDeleteRecursosDialog = () => {
-        setDeleteRecursosDialog(false);
+    const hideDeletePerfilUsuariosDialog = () => {
+        setDeletePerfilUsuariosDialog(false);
     };
 
-    const saveRecurso = () => {
+    const savePerfilUsuario = () => {
         setSubmitted(true);
 
-        if(!recurso.id){
-            recursoService.inserir(recurso)
+        if(!perfilUsuario.id){
+            perfilUsuarioService.inserir(perfilUsuario)
             .then((response) => {
                 console.log(response.data);
-                setRecursoDialog(false);
-                setRecurso(recursoVazio);
-                setRecursos(null);
-                setRecursos(response.data);
+                setPerfilUsuarioDialog(false);
+                setPerfilUsuario(perfilUsuarioVazio);
+                setPerfisUsuario(null);
+                setPerfisUsuario(response.data);
                 toast.current?.show({
                     severity: 'info',
                     summary: 'Sucesso!',
-                    detail: 'Recurso cadastrado com sucesso!'
+                    detail: 'PerfilUsuario cadastrado com sucesso!'
                 })
             }).catch((error) =>{
                 const errorMessage = error?.response?.data?.message || 'Erro ao salvar, tente novamente.';
@@ -93,15 +123,15 @@ const Recurso = () => {
                 })
             })
         }else{
-            recursoService.alterar(recurso)
+            perfilUsuarioService.alterar(perfilUsuario)
             .then((response) => {
-                setRecursoDialog(false);
-                setRecurso(recursoVazio);
-                setRecursos(null);
+                setPerfilUsuarioDialog(false);
+                setPerfilUsuario(perfilUsuarioVazio);
+                setPerfisUsuario(null);
                 toast.current?.show({
                     severity: 'info',
                     summary: 'Sucesso',
-                    detail: 'Recurso alterado com sucesso.'
+                    detail: 'Perfil alterado com sucesso.'
                 })
             }).catch((error) => {
                 const errorMessage = error?.response?.data?.message || 'Erro ao salvar, tente novamente.';
@@ -115,26 +145,26 @@ const Recurso = () => {
         }
     };
 
-    const editRecurso = (recurso: Galeria.Recurso) => {
-        setRecurso({ ...recurso });
-        setRecursoDialog(true);
+    const editPerfilUsuario = (perfilUsuario: Galeria.PerfilUsuario) => {
+        setPerfilUsuario({ ...perfilUsuario });
+        setPerfilUsuarioDialog(true);
     };
 
-    const confirmDeleteRecurso = (recurso: Galeria.Recurso) => {
-        setRecurso(recurso);
-        setDeleteRecursoDialog(true);
+    const confirmDeletePerfilUsuario = (perfilUsuario: Galeria.PerfilUsuario) => {
+        setPerfilUsuario(perfilUsuario);
+        setDeletePerfilUsuarioDialog(true);
     };
 
-    const deleteRecurso = () => {
-        if(recurso.id){
-        recursoService.excluir(recurso.id).then((response) => {
-            setRecurso(recursoVazio);
-            setDeleteRecursoDialog(false);
-            setRecursos(null);
+    const deletePerfilUsuario = () => {
+        if(perfilUsuario.id){
+        perfilUsuarioService.excluir(perfilUsuario.id).then((response) => {
+            setPerfilUsuario(perfilUsuarioVazio);
+            setDeletePerfilUsuarioDialog(false);
+            setPerfisUsuario(null);
             toast.current?.show({
                 severity: 'success',
                 summary: 'Sucesso!',
-                detail: 'Recurso deletado',
+                detail: 'Perfil deletado',
                 life: 3000 });
 
         }).catch((error) => {
@@ -152,29 +182,29 @@ const Recurso = () => {
     };
 
     const confirmDeleteSelected = () => {
-        setDeleteRecursosDialog(true);
+        setDeletePerfilUsuariosDialog(true);
     };
 
-    const deleteSelectedRecursos = () => {
-        Promise.all(selectedRecursos.map(async (_recurso) =>{
-            if(_recurso.id){
-            await recursoService.excluir(_recurso.id);
+    const deleteSelectedPerfilUsuarios = () => {
+        Promise.all(selectedPerfilUsuarios.map(async (_perfilUsuario) =>{
+            if(_perfilUsuario.id){
+            await perfilUsuarioService.excluir(_perfilUsuario.id);
     }
     })).then((response) => {
-        setRecursos(null);
-        setSelectedRecursos([]);
-        setDeleteRecursosDialog(false);
+        setPerfisUsuario(null);
+        setSelectedPerfilUsuarios([]);
+        setDeletePerfilUsuariosDialog(false);
         toast.current?.show({
             severity: 'success',
             summary: 'Sucessso',
-            detail: 'Deletado recursos.',
+            detail: 'Deletado perfis.',
             life: 3000
         })
     }).catch((error) => {
         toast.current?.show({
             severity: 'error',
             summary: 'Erro!',
-            detail: 'Erro ao deletar recursos.',
+            detail: 'Erro ao deletar perfis.',
             life: 3000
         })
     })
@@ -188,10 +218,10 @@ const Recurso = () => {
 
     const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, nome: string) => {
         const val = (e.target && e.target.value) || '';
-        let _recurso = { ...recurso };
-        _recurso[nome] = val;
+        let _perfilUsuario = { ...perfilUsuario };
+        _perfilUsuario[nome] = val;
     
-        setRecurso(_recurso);
+        setPerfilUsuario(_perfilUsuario);
     };
     
 
@@ -200,8 +230,8 @@ const Recurso = () => {
         return (
             <React.Fragment>
                 <div className="my-2">
-                    <Button label="Novo Recurso" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
-                    <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteSelected} disabled={!selectedRecursos || !(selectedRecursos as any).length} />
+                    <Button label="Novo PerfilUsuario" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
+                    <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteSelected} disabled={!selectedPerfilUsuarios || !(selectedPerfilUsuarios as any).length} />
                 </div>
             </React.Fragment>
         );
@@ -216,7 +246,7 @@ const Recurso = () => {
         );
     };
 
-    const idBodyTemplate = (rowData: Galeria.Recurso) => {
+    const idBodyTemplate = (rowData: Galeria.PerfilUsuario) => {
         return (
             <>
                 <span className="p-column-title">Código</span>
@@ -225,23 +255,25 @@ const Recurso = () => {
         );
     };
 
-    const nomeBodyTemplate = (rowData: Galeria.Recurso) => {
+    const perfilBodyTemplate = (rowData: Galeria.PerfilUsuario) => {
         return (
             <>
-                <span className="p-column-title">Nome</span>
-                {rowData.nome}
+                <span className="p-column-title">Perfil</span>
+                {rowData.perfil.descricao}
             </>
         );
     };
 
-    const chaveBodyTemplate = (rowData: Galeria.Recurso) => {
+    const usuarioBodyTemplate = (rowData: Galeria.PerfilUsuario) => {
         return (
             <>
-                <span className="p-column-title">Chave</span>
-                {rowData.chave}
+                <span className="p-column-title">Usuário</span>
+                {rowData.usuario.nome}
             </>
         );
     };
+
+
 
 
     // const imageBodyTemplate = (rowData: Galeria.Usuario) => {
@@ -266,18 +298,18 @@ const Recurso = () => {
 
 
 
-    const actionBodyTemplate = (rowData: Galeria.Recurso) => {
+    const actionBodyTemplate = (rowData: Galeria.PerfilUsuario) => {
         return (
             <>
-                <Button icon="pi pi-pencil" rounded severity="success" className="mr-2" onClick={() => editRecurso(rowData)} />
-                <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeleteRecurso(rowData)} />
+                <Button icon="pi pi-pencil" rounded severity="success" className="mr-2" onClick={() => editPerfilUsuario(rowData)} />
+                <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeletePerfilUsuario(rowData)} />
             </>
         );
     };
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Cadastro de Recursos</h5>
+            <h5 className="m-0">Cadastro de PerfilUsuario</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.currentTarget.value)} placeholder="Search..." />
@@ -285,24 +317,36 @@ const Recurso = () => {
         </div>
     );
 
-    const recursoDialogFooter = (
+    const perfilUsuarioDialogFooter = (
         <>
             <Button label="Cancelar" icon="pi pi-times" text onClick={hideDialog} />
-            <Button label="Salvar" icon="pi pi-check" text onClick={saveRecurso} />
+            <Button label="Salvar" icon="pi pi-check" text onClick={savePerfilUsuario} />
         </>
     );
-    const deleteRecursoDialogFooter = (
+    const deletePerfilUsuarioDialogFooter = (
         <>
-            <Button label="Não" icon="pi pi-times" text onClick={hideDeleteRecursoDialog} />
-            <Button label="Sim" icon="pi pi-check" text onClick={deleteRecurso} />
+            <Button label="Não" icon="pi pi-times" text onClick={hideDeletePerfilUsuarioDialog} />
+            <Button label="Sim" icon="pi pi-check" text onClick={deletePerfilUsuario} />
         </>
     );
-    const deleteRecursosDialogFooter = (
+    const deletePerfilUsuariosDialogFooter = (
         <>
-            <Button label="Não" icon="pi pi-times" text onClick={hideDeleteRecursosDialog} />
-            <Button label="Sim" icon="pi pi-check" text onClick={deleteSelectedRecursos} />
+            <Button label="Não" icon="pi pi-times" text onClick={hideDeletePerfilUsuariosDialog} />
+            <Button label="Sim" icon="pi pi-check" text onClick={deleteSelectedPerfilUsuarios} />
         </>
     );
+
+    const onSelectUsuariosChange = (usuario: Galeria.Usuario) =>{
+        let _perfilUsuario = {...perfilUsuario};
+        _perfilUsuario.usuario = usuario;
+        setPerfilUsuario(_perfilUsuario);
+    }
+
+    const onSelectPerfilChange = (perfil: Galeria.Perfil) =>{
+        let _perfilUsuario = {...perfilUsuario};
+        _perfilUsuario.perfil = perfil;
+        setPerfilUsuario(_perfilUsuario);
+    }
 
     return (
         <div className="grid crud-demo">
@@ -313,74 +357,58 @@ const Recurso = () => {
 
                     <DataTable
                         ref={dt}
-                        value={recursos}
-                        selection={selectedRecursos}
-                        onSelectionChange={(e) => setSelectedRecursos(e.value as any)}
+                        value={perfisUsuario}
+                        selection={selectedPerfilUsuarios}
+                        onSelectionChange={(e) => setSelectedPerfilUsuarios(e.value as any)}
                         dataKey="id"
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} to {last} of {totalRecords} recursos"
+                        currentPageReportTemplate="Mostrando {first} to {last} of {totalRecords} perfilUsuarios"
                         globalFilter={globalFilter}
-                        emptyMessage="Nenhum Recurso encontrado."
+                        emptyMessage="Nenhum PerfilUsuario encontrado."
                         header={header}
                         responsiveLayout="scroll"
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
                         <Column field="id" header="Código" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="nome" header="Nome" sortable body={nomeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="usuario" header="Usuário" sortable body={usuarioBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="perfil" header="Perfil" sortable body={perfilBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+
                         {/* <Column header="Image" body={imageBodyTemplate}></Column> */}
                        
                         {/* <Column field="category" header="Category" sortable body={categoryBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column> */}
                         
                         {/* <Column field="inventoryStatus" header="Status" body={statusBodyTemplate} sortable headerStyle={{ minWidth: '10rem' }}></Column> */}
-                       
-                        <Column field="chave" header="Chave" sortable body={chaveBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                       
+                                             
        
                        
                         <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
-                    <Dialog visible={recursoDialog} style={{ width: '450px' }} header="Detalhes do Recurso" modal className="p-fluid" footer={recursoDialogFooter} onHide={hideDialog}>
+                    <Dialog visible={perfilUsuarioDialog} style={{ width: '450px' }} header="Detalhes do perfilUsuario" modal className="p-fluid" footer={perfilUsuarioDialogFooter} onHide={hideDialog}>
                         {/* {product.image && <img src={`/demo/images/product/${product.image}`} alt={product.image} width="150" className="mt-0 mx-auto mb-5 block shadow-2" />} */}
                         <div className="field">
-                            <label htmlFor="nome">Nome</label>
-                            <InputText
-                                id="nome"
-                                value={recurso.nome}
-                                onChange={(e) => onInputChange(e, 'nome')}
-                                required
-                                autoFocus
-                                className={classNames({
-                                    'p-invalid': submitted && !recurso.nome
-                                })}
-                            />
-                            {submitted && !recurso.nome && <small className="p-invalid">Nome é obrigatório.</small>}
+                            <label htmlFor="usuario">Usuário</label>
+                            <Dropdown optionLabel='nome' value={perfilUsuario.usuario} options={usuarios} filter onChange={(e: DropdownChangeEvent) => onSelectUsuariosChange(e.value)} placeholder='Selecione um Usuário.'></Dropdown>
+                        
+                            {submitted && !perfilUsuario.usuario && <small className="p-invalid">O usuario é obrigatório.</small>}
+                        </div>
+                        
+                        <div className="field">
+                            <label htmlFor="perfil">Perfil</label>
+                            <Dropdown optionLabel='descricao' value={perfilUsuario.perfil} options={perfis} filter onChange={(e: DropdownChangeEvent) => onSelectPerfilChange(e.value)} placeholder='Selecione um perfil.'></Dropdown>
+
+                            {submitted && !perfilUsuario.perfil && <small className="p-invalid">O perfil é obrigatório.</small>}
                         </div>
                         {/* <div className="field">
                             <label htmlFor="description">Description</label>
                             <InputTextarea id="description" value={recurso.description} onChange={(e) => onInputChange(e, 'description')} required rows={3} cols={20} />
                         </div> */}
 
-                        <div className="field">
-                            <label htmlFor="chave">Chave</label>
-                            <InputText
-                                id="chave"
-                                value={recurso.chave}
-                                onChange={(e) => onInputChange(e, 'chave')}
-                                required
-                                autoFocus
-                                className={classNames({
-                                    'p-invalid': submitted && !recurso.chave
-                                })}
-                            />
-                            {submitted && !recurso.chave && <small className="p-invalid">chave é obrigatório.</small>}
-                        </div>
-
-                       
+                    
 
 
                         {/* <div className="field">
@@ -408,21 +436,21 @@ const Recurso = () => {
                        
                     </Dialog>
 
-                    <Dialog visible={deleteRecursoDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteRecursoDialogFooter} onHide={hideDeleteRecursoDialog}>
+                    <Dialog visible={deletePerfilUsuarioDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deletePerfilUsuarioDialogFooter} onHide={hideDeletePerfilUsuarioDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {recurso && (
+                            {perfilUsuario && (
                                 <span>
-                                    Deseja realmente EXCLUIR o recurso? <b>{recurso.nome}</b>?
+                                    Deseja realmente EXCLUIR o perfilUsuario? <b>{perfilUsuario.usuario.nome}</b>?
                                 </span>
                             )}
                         </div>
                     </Dialog>
 
-                    <Dialog visible={deleteRecursosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteRecursosDialogFooter} onHide={hideDeleteRecursosDialog}>
+                    <Dialog visible={deletePerfilUsuariosDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deletePerfilUsuariosDialogFooter} onHide={hideDeletePerfilUsuariosDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {recurso && <span>Deseja realmente EXCLUIR os recursos selecionados?</span>}
+                            {perfilUsuario && <span>Deseja realmente EXCLUIR os perfis selecionados?</span>}
                         </div>
                     </Dialog>
                 </div>
@@ -431,4 +459,4 @@ const Recurso = () => {
     );
 };
 
-export default Recurso;
+export default PerfilUsuario;
